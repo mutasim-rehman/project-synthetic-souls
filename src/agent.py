@@ -63,7 +63,8 @@ class Agent:
             "messages": messages,
             "stream": False,
             "options": {
-                "temperature": 0.8 # Slightly higher for more varied/chaotic personalities
+                "temperature": 0.8, # Slightly higher for more varied/chaotic personalities
+                "num_ctx": 4096    # Limit context size to avoid memory errors with large models
             }
         }
         
