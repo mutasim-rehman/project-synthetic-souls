@@ -5,13 +5,10 @@ from .config import OLLAMA_API_URL, DEFAULT_MODEL
 console = Console()
 
 class Agent:
-    def __init__(self, name, personality, beliefs, emotions, biases, relationships=""):
-        self.name = name
-        self.personality = personality
-        self.beliefs = beliefs
-        self.emotions = emotions
-        self.biases = biases
-        self.relationships = relationships
+    def __init__(self, schema):
+        self.schema = schema
+        self.name = schema.get("name", "Unknown Agent")
+        self.id = schema.get("id", "XX")
         self.memory = []
         self.system_prompt = self._build_system_prompt()
         self.color = "white"
@@ -21,14 +18,37 @@ class Agent:
 
     def _build_system_prompt(self):
         prompt = f"You are {self.name}.\n"
-        prompt += f"Personality: {self.personality}\n"
-        prompt += f"Beliefs: {self.beliefs}\n"
-        prompt += f"Current Emotional State: {self.emotions}\n"
-        prompt += f"Biases: {self.biases}\n"
-        if self.relationships:
-            prompt += f"Relationships, Secrets and knowledge about others: {self.relationships}\n"
+        prompt += f"Archetype: {self.schema.get('archetype', '')}\n"
+        prompt += f"Personality: {self.schema.get('personality', '')}\n"
+        prompt += f"Profile: {self.schema.get('profile', '')}\n\n"
         
-        prompt += "\nINSTRUCTIONS:\n"
+        beliefs = self.schema.get("beliefs", [])
+        if beliefs:
+            prompt += "Core Beliefs:\n- " + "\n- ".join(beliefs) + "\n\n"
+            
+        emoti = self.schema.get("emotional_baseline", "")
+        if emoti:
+            prompt += f"Current Emotional Baseline: {emoti}\n\n"
+            
+        comm = self.schema.get("communication", {})
+        if comm:
+            prompt += "Communication Style:\n"
+            for k, v in comm.items():
+                if isinstance(v, list):
+                    prompt += f"- {k}: {', '.join(v)}\n"
+                else:
+                    prompt += f"- {k}: {v}\n"
+            prompt += "\n"
+        
+        fears = self.schema.get("fears", [])
+        if fears:
+            prompt += "Fears:\n- " + "\n- ".join(fears) + "\n\n"
+            
+        biases = self.schema.get("biases", [])
+        if biases:
+            prompt += "Biases & Prejudices:\n- " + "\n- ".join(biases) + "\n\n"
+        
+        prompt += "INSTRUCTIONS:\n"
         prompt += "1. NEVER break character. You are participating in a group chat.\n"
         prompt += "2. Respond concisely, like a real person typing in a chat room. Do not write essays. 1-3 sentences maximum.\n"
         prompt += "3. Keep your emotional state and biases in mind, and let them influence your responses.\n"

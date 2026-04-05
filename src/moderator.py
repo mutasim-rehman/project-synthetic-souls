@@ -1,4 +1,6 @@
 import sys
+import json
+import os
 from rich.console import Console
 from rich.prompt import Prompt, IntPrompt
 from .agent import Agent
@@ -17,21 +19,32 @@ class ModeratorInterface:
 
     def setup_agents(self):
         console.print("[bold green]=== AGENT SETUP ===[/bold green]")
-        num_agents = IntPrompt.ask("How many agents to create?", default=3)
+        schema_path = os.path.join(os.path.dirname(__file__), "personality_schema.json")
+        try:
+            with open(schema_path, "r", encoding="utf-8") as f:
+                schemas = json.load(f)
+        except Exception as e:
+            console.print(f"[bold red]Failed to load personality schemas: {e}[/bold red]")
+            return
+            
+        console.print("\n[bold blue]Available Agents from Schema:[/bold blue]")
+        for i, schema in enumerate(schemas):
+            console.print(f"{i + 1}. [bold cyan]{schema.get('name', 'Unknown')}[/bold cyan] - {schema.get('archetype', '')}")
+            console.print(f"   [yellow]Personality:[/yellow] {schema.get('personality', '')}")
+            profile = schema.get('profile', '')
+            if len(profile) > 100:
+                profile = profile[:100] + "..."
+            console.print(f"   [yellow]Profile:[/yellow] {profile}\n")
+            
+        selected_raw = Prompt.ask("Enter comma-separated numbers of agents to include (e.g. 1,3,4)", default="1,2,3")
+        indices = [int(i.strip()) - 1 for i in selected_raw.split(",") if i.strip().isdigit()]
         
-        for i in range(num_agents):
-            console.print(f"\n[bold cyan]-- Agent {i+1} --[/bold cyan]")
-            name = Prompt.ask("Name")
-            personality = Prompt.ask("Personality (e.g., Aggressive, Shy, Analytical)", default="Neutral")
-            beliefs = Prompt.ask("Beliefs (e.g., Trust no one, Science is absolute)", default="Standard")
-            emotions = Prompt.ask("Current Emotional State (e.g., Anxious, Happy, Angry)", default="Calm")
-            biases = Prompt.ask("Biases / Prejudices", default="None")
-            relationships = Prompt.ask("Relationships & Secrets (Leave blank if none)", default="")
-            
-            agent = Agent(name, personality, beliefs, emotions, biases, relationships)
-            self.agents.append(agent)
-            
-        console.print(f"\n[green]Successfully created {len(self.agents)} agents![/green]")
+        for idx in indices:
+            if 0 <= idx < len(schemas):
+                agent = Agent(schemas[idx])
+                self.agents.append(agent)
+                
+        console.print(f"\n[green]Successfully loaded {len(self.agents)} agents![/green]")
 
     def setup_mode(self):
         console.print("\n[bold green]=== SIMULATION MODES ===[/bold green]")
