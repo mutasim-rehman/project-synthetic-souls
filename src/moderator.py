@@ -6,7 +6,7 @@ from rich.prompt import Prompt, IntPrompt
 from .agent import Agent
 from .environment import Environment
 from .modes import get_mode_setup, apply_mode_special_rules
-from .config import MODE_TOPIC, MODE_FIND_HUMAN, MODE_BLEND_IN
+from .config import MODE_TOPIC, MODE_IMPOSTER, MODE_BLEND_IN
 
 console = Console()
 
@@ -49,11 +49,12 @@ class ModeratorInterface:
     def setup_mode(self):
         console.print("\n[bold green]=== SIMULATION MODES ===[/bold green]")
         console.print("1. Topic Conversation (Standard discussion)")
-        console.print("2. Target Identifier (Turing test: Find the Human)")
+        console.print("2. Find the Imposter (Moderator asks Qs, agents vote)")
         console.print("3. Blend In (One agent thinks everyone else is human)")
         
         self.mode = IntPrompt.ask("Select Mode", choices=["1", "2", "3"], default=1)
-        self.max_turns = IntPrompt.ask("Set max turns (1 turn = 1 agent message)", default=15)
+        if self.mode != MODE_IMPOSTER:
+            self.max_turns = IntPrompt.ask("Set max turns (1 turn = 1 agent message)", default=15)
         
         if self.mode == MODE_TOPIC:
             self.topic = Prompt.ask("Enter the discussion topic", default="The meaning of life")
@@ -65,8 +66,12 @@ class ModeratorInterface:
             mole_idx = IntPrompt.ask("Select the agent who must blend in", default=1) - 1
             apply_mode_special_rules(self.agents, self.mode, mole_idx)
             
-        elif self.mode == MODE_FIND_HUMAN:
-            apply_mode_special_rules(self.agents, self.mode)
+        elif self.mode == MODE_IMPOSTER:
+            console.print("Agents available for the 'Imposter' role:")
+            for i, agent in enumerate(self.agents):
+                console.print(f"{i + 1}. {agent.name}")
+            imposter_idx = IntPrompt.ask("Select the agent to be the imposter", default=1) - 1
+            apply_mode_special_rules(self.agents, self.mode, imposter_idx)
 
     def run_simulation(self):
         if not self.agents:
@@ -76,7 +81,11 @@ class ModeratorInterface:
         mode_context, initial_msg = get_mode_setup(self.mode, self.topic)
         
         env = Environment(self.agents, mode_context)
-        env.run_chat(max_turns=self.max_turns, initial_moderator_msg=initial_msg)
+        
+        if self.mode == MODE_IMPOSTER:
+            env.run_imposter_mode(initial_msg)
+        else:
+            env.run_chat(max_turns=self.max_turns, initial_moderator_msg=initial_msg)
         
         console.print("\n[bold yellow]Chat finished. Initiating Confession Room...[/bold yellow]")
         env.confession_room()

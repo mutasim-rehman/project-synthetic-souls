@@ -5,5 +5,5 @@ DEFAULT_MODEL = "llama3.2:3b"
 
 # Mode identifiers
 MODE_TOPIC = 1
-MODE_FIND_HUMAN = 2
+MODE_IMPOSTER = 2
 MODE_BLEND_IN = 3

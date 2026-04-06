@@ -1,4 +1,4 @@
-from .config import MODE_TOPIC, MODE_FIND_HUMAN, MODE_BLEND_IN
+from .config import MODE_TOPIC, MODE_IMPOSTER, MODE_BLEND_IN
 
 def get_mode_setup(mode_id, topic=""):
     """
@@ -11,15 +11,16 @@ def get_mode_setup(mode_id, topic=""):
         initial_msg = f"Welcome everyone. Today's topic is: {topic}. Please discuss."
         return mode_context, initial_msg
         
-    elif mode_id == MODE_FIND_HUMAN:
+    elif mode_id == MODE_IMPOSTER:
         mode_context = (
-            "You are participating in a Turing Test. One of you might be a human, or none of you might be. "
-            "Your goal is to figure out who the human is, while participating in the chat. "
-            "At the end of the chat, you will be asked to vote."
+            "You are playing 'Find the Imposter'. One of the agents in this chat is the imposter. "
+            "Your goal is to figure out who the imposter is based on their answers, while acting naturally. "
+            "If you are the imposter, your goal is to blend in and not get caught. "
+            "The Moderator will ask a series of questions. Answer them in character."
         )
         initial_msg = (
-            "Welcome. We are conducting a Turing Test. I will not confirm if there is a human among you. "
-            "Please converse normally, but try to deduce who might be human. We'll start by having everyone introduce themselves."
+            "Welcome to Find the Imposter. One of you is the designated imposter. "
+            "I will ask 10 questions. Everyone must answer. At the end, you will all vote on who is the imposter."
         )
         return mode_context, initial_msg
         
@@ -47,10 +48,19 @@ def apply_mode_special_rules(agents, mode_id, target_agent_index=None):
             "You are an AI placed in a chat room full of real humans who are trying to detect if an AI is present. "
             "You MUST blend in perfectly. Do not let them know you are an AI. Mimic human imperfections or behavior if necessary."
         )
-    elif mode_id == MODE_FIND_HUMAN:
-        for agent in agents:
-            agent.system_prompt += (
-                "\n\n[SECRET INSTRUCTION]: "
-                "Look closely at the other participants. If someone seems too perfect, they might be an AI. "
-                "If someone seems imperfect, they might be a human. Be paranoid but keep it subtle."
-            )
+    elif mode_id == MODE_IMPOSTER:
+        for i, agent in enumerate(agents):
+            if i == target_agent_index:
+                agent.system_prompt += (
+                    "\n\n[SECRET INSTRUCTION]: "
+                    "YOU ARE THE IMPOSTER. Do not reveal this to anyone. "
+                    "Your goal is to answer questions while blending in so that nobody suspects you. "
+                    "Deflect suspicion if accused."
+                )
+            else:
+                agent.system_prompt += (
+                    "\n\n[SECRET INSTRUCTION]: "
+                    "You are a regular participant. One of the other agents is the imposter. "
+                    "Analyze their answers carefully to figure out who it is. "
+                    "Do not falsely claim to be the imposter."
+                )

@@ -64,6 +64,46 @@ class Environment:
             
         console.print("\n[bold rgb(175,0,255)]--- The Chat Room is now CLOSED ---[/bold rgb(175,0,255)]\n")
 
+    def run_imposter_mode(self, initial_moderator_msg=""):
+        """Runs the custom flow for Find the Imposter mode."""
+        console.print("\n[bold rgb(175,0,255)]--- Imposter Mode Started ---[/bold rgb(175,0,255)]\n")
+        
+        if initial_moderator_msg:
+            self.broadcast("Moderator", initial_moderator_msg)
+            
+        from rich.prompt import Prompt
+        num_questions = 10
+        
+        for q_idx in range(num_questions):
+            question = Prompt.ask(f"\n[bold white]Moderator (Enter Question {q_idx+1}/{num_questions})[/bold white]")
+            self.broadcast("Moderator", question)
+            
+            for agent in self.agents:
+                with console.status(f"[{agent.color}]{agent.name} is thinking...[/{agent.color}]"):
+                    reply = agent.generate_reply(mode_context=self.mode_context)
+                
+                if reply:
+                    self.broadcast(agent.name, reply)
+                else:
+                    self.broadcast(agent.name, "*stays silent*")
+                time.sleep(1.0)
+                
+        # Voting phase
+        self.broadcast("Moderator", "The questions have concluded. It is now time to vote. Each of you must state who you think the imposter is and provide your reasoning.")
+        for agent in self.agents:
+            with console.status(f"[{agent.color}]{agent.name} is making their final decision...[/{agent.color}]"):
+                reply = agent.generate_reply(
+                    mode_context=self.mode_context,
+                    additional_system_instruction="The game is strictly over. Conclude by explicitly stating who you think the imposter is among the other agents and briefly explain your reasoning (even if you are the imposter!). This is your final vote."
+                )
+            if reply:
+                self.broadcast(agent.name, reply)
+            else:
+                self.broadcast(agent.name, "*stays silent*")
+            time.sleep(1.5)
+            
+        console.print("\n[bold rgb(175,0,255)]--- Imposter Mode Ended ---[/bold rgb(175,0,255)]\n")
+
     def confession_room(self):
         """Allows humans to interview agents privately after the chat."""
         from rich.prompt import Prompt
